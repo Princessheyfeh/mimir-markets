@@ -117,6 +117,60 @@ export type Scope = { kind: "scoped"; tiers: ReadonlySet<Tier> } | { kind: "doc"
 
 export const ALL_TIERS: ReadonlySet<Tier> = new Set<Tier>(["app", "agents", "contracts", "tests"]);
 
+/**
+ * Cross-workspace compatibility report.
+ *
+ * Compares app, bindings, contracts and schema versions read from tracked
+ * artifacts (passed in as plain data, never fetched live) and lists every
+ * incompatible combination. Pure and offline: no network, no service calls.
+ */
+export type WorkspaceVersions = {
+  app: string;
+  bindings: string;
+  contracts: string;
+  schema: string;
+};
+
+export type CompatibilityRule = {
+  /** Which workspace pair the rule constrains. */
+  dimension: "app" | "bindings" | "contracts" | "schema";
+  /** Value the dimension must match for the report to be compatible. */
+  expected: string;
+};
+
+export type CompatibilityIssue = {
+  dimension: CompatibilityRule["dimension"];
+  expected: string;
+  actual: string;
+};
+
+export type CompatibilityReport = {
+  compatible: boolean;
+  issues: CompatibilityIssue[];
+};
+
+/**
+ * Build an offline compatibility report from tracked versions and rules.
+ * Missing or empty versions are reported as incompatible (fail closed).
+ */
+export function buildCompatibilityReport(
+  versions: WorkspaceVersions,
+  rules: ReadonlyArray<CompatibilityRule>,
+): CompatibilityReport {
+  const issues: CompatibilityIssue[] = [];
+  for (const rule of rules) {
+    const actual = versions[rule.dimension];
+    if (!actual || actual !== rule.expected) {
+      issues.push({
+        dimension: rule.dimension,
+        expected: rule.expected,
+        actual: actual ?? "",
+      });
+    }
+  }
+  return { compatible: issues.length === 0, issues };
+}
+
 /** True when the path is a bare top-level entry (`foo`, not `foo/bar`). */
 function isRootLevel(path: string): boolean {
   return !path.includes("/");
