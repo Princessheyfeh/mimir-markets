@@ -69,3 +69,10 @@ pub fn try_balance(env: &Env, usdc: &Address) -> Option<i128> {
         _ => None,
     }
 }
+
+/// Read-only escrow view for settlement readiness: returns the escrow balance
+/// without any state mutation, so callers can report withdrawal availability
+/// independently of resolution.
+pub fn readable_balance(env: &Env, usdc: &Address) -> i128 {
+    balance(env, usdc)
+}
